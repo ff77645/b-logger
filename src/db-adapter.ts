@@ -22,8 +22,8 @@ export class IDBAdapter {
     const range = IDBKeyRange.bound(
       startTime?.toLocaleString(),
       endTime?.toLocaleString(),
-      false,
-      true
+      true,
+      false
     );
 
     return new Promise((resolve) => {

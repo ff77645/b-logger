@@ -16,12 +16,23 @@ type LogEntry = {
   context?: Context;
 };
 
+type Options = {
+  level: LogLevel,
+  log:(entry:LogEntry)=>void
+}
+
+const defaultLog = (entry:LogEntry)=>{
+  console.log(`${LogLevel[entry.level]}  [${entry.timestamp.toLocaleString()}]: ${entry.message}`)
+}
+
 export class Logger {
   private level: LogLevel;
   private dbAdapter: IDBAdapter;
+  private print:(entry:LogEntry)=>void;
 
-  constructor(level: LogLevel = LogLevel.DEBUG) {
-    this.level = level;
+  constructor(options:Options={level:LogLevel.DEBUG,log:defaultLog}) {
+    this.level = options.level;
+    this.print = options.log
     this.dbAdapter = new IDBAdapter();
   }
 
@@ -50,7 +61,7 @@ export class Logger {
       timestamp: new Date(),
       context
     };
-
+    this.print(entry)
     await this.dbAdapter.saveLog({
       ...entry,
       timestamp: entry.timestamp.toLocaleString(),

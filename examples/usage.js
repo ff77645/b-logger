@@ -27,12 +27,7 @@ document.getElementById('get_logs')?.addEventListener('click', async () => {
 
 
 document.getElementById('add_logs').addEventListener('click',async ()=>{
-    // const res = await logger.debug('调试信息', { module: 'auth' });
-    // console.log({res});
-    
     await logger.info('用户登录', { userId: 123 });
-    setTimeout(async ()=>{
-        const logs = await logger.getLogs(new Date('2023-01-01'), new Date(), LogLevel.DEBUG);
-        console.log({logs});
-    },500)
+    const logs = await logger.getLogs(new Date('2023-01-01'), new Date(), LogLevel.DEBUG);
+    console.log({logs});
 })

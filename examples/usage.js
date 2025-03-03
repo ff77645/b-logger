@@ -31,3 +31,10 @@ document.getElementById('add_logs').addEventListener('click',async ()=>{
     const logs = await logger.getLogs(new Date('2023-01-01'), new Date(), LogLevel.DEBUG);
     console.log({logs});
 })
+
+document.getElementById('clear_logs')?.addEventListener('click', async () => {
+    const end = new Date();
+    const start = new Date(end.getTime() - 3600 * 1000);
+    await logger.clearLogs(start, end);
+    console.log('已清除最近一小时的日志');
+});

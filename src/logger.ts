@@ -22,7 +22,7 @@ type Options = {
 }
 
 const defaultLog = (entry:LogEntry)=>{
-  console.log(`${LogLevel[entry.level]}  [${entry.timestamp.toLocaleString()}]: ${entry.message}`)
+  console.log(`${LogLevel[entry.level]}  [${new Date(entry.timestamp).toLocaleString()}]: ${entry.message}`)
 }
 
 export class Logger {
@@ -64,9 +64,12 @@ export class Logger {
     this.print(entry)
     await this.dbAdapter.saveLog({
       ...entry,
-      timestamp: entry.timestamp.toLocaleString(),
       context: entry.context ? JSON.stringify(entry.context) : undefined
     });
+  }
+
+  async clearLogs(startTime?: Date, endTime?: Date) {
+    await this.dbAdapter.deleteLogs(startTime, endTime);
   }
 
   async getLogs(startTime?: Date, endTime?: Date, minLevel?: LogLevel) {

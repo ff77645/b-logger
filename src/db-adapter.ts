@@ -4,7 +4,7 @@ export type Context = any;
 interface LogEntryDB {
   level: number;
   message: string;
-  timestamp?: string;
+  timestamp?: Date;
   context?: Context;
 }
 
@@ -13,6 +13,44 @@ export class IDBAdapter {
   private storeName = 'logEntries';
   private dbPromise: Promise<IDBDatabase>;
 
+
+  constructor() {
+    this.dbPromise = new Promise((resolve, reject) => {
+      const request = indexedDB.open(this.dbName, 2);
+
+      request.onupgradeneeded = (event) => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(this.storeName)) {
+          const store = db.createObjectStore(this.storeName, { 
+            keyPath: 'id',
+            autoIncrement: true 
+          });
+          store.createIndex('timestamp_idx', 'timestamp', { unique: false });
+        }
+      };
+
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async saveLog(entry: LogEntryDB) {
+    const db = await this.dbPromise;
+    const transaction = db.transaction(this.storeName, 'readwrite');
+    const store = transaction.objectStore(this.storeName);
+    
+    return new Promise((resolve, reject) => {
+        const request = store.add({
+          ...entry,
+          timestamp: (entry.timestamp || new Date()).getTime(),
+          context: typeof entry.context === 'object' ? JSON.stringify(entry.context) : entry.context
+        });
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    })
+  }
+
+  
   async getLogs(startTime?: Date, endTime?: Date, minLevel?: number): Promise<LogEntryDB[]> {
     const db = await this.dbPromise;
     const transaction = db.transaction(this.storeName, 'readonly');
@@ -20,8 +58,8 @@ export class IDBAdapter {
     const index = store.index('timestamp_idx');
     
     const range = IDBKeyRange.bound(
-      startTime?.toLocaleString(),
-      endTime?.toLocaleString(),
+      startTime?.getTime(),
+      endTime?.getTime(),
       true,
       false
     );
@@ -49,39 +87,31 @@ export class IDBAdapter {
     });
   }
 
-  constructor() {
-    this.dbPromise = new Promise((resolve, reject) => {
-      const request = indexedDB.open(this.dbName, 1);
+  async deleteLogs(startTime?: Date, endTime?: Date) {
+    const db = await this.dbPromise;
+    const tx = db.transaction(this.storeName, 'readwrite');
+    const store = tx.objectStore(this.storeName);
+    const index = store.index('timestamp_idx');
 
-      request.onupgradeneeded = (event) => {
-        const db = request.result;
-        if (!db.objectStoreNames.contains(this.storeName)) {
-          const store = db.createObjectStore(this.storeName, { 
-            keyPath: 'id',
-            autoIncrement: true 
-          });
-          store.createIndex('timestamp_idx', 'timestamp', { unique: false });
+    const range = IDBKeyRange.bound(
+      startTime?.getTime(),
+      endTime?.getTime(),
+      true,
+      false
+    );
+
+    return new Promise((resolve, reject) => {
+      const request = index.openCursor(range);
+      request.onsuccess = (event) => {
+        const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+        if (cursor) {
+          cursor.delete();
+          cursor.continue();
+        } else {
+          resolve(void 0);
         }
       };
-
-      request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
-  }
-
-  async saveLog(entry: LogEntryDB) {
-    const db = await this.dbPromise;
-    const transaction = db.transaction(this.storeName, 'readwrite');
-    const store = transaction.objectStore(this.storeName);
-    
-    return new Promise((resolve, reject) => {
-        const request = store.add({
-          ...entry,
-          timestamp: new Date().toLocaleString(),
-          context: typeof entry.context === 'object' ? JSON.stringify(entry.context) : entry.context
-        });
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-    })
   }
 }

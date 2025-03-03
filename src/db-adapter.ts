@@ -1,8 +1,11 @@
+
+export type Context = any;
+
 interface LogEntryDB {
   level: number;
   message: string;
   timestamp?: string;
-  context?: string;
+  context?: Context;
 }
 
 export class IDBAdapter {
@@ -17,8 +20,8 @@ export class IDBAdapter {
     const index = store.index('timestamp_idx');
     
     const range = IDBKeyRange.bound(
-      startTime?.toISOString(),
-      endTime?.toISOString(),
+      startTime?.toLocaleString(),
+      endTime?.toLocaleString(),
       false,
       true
     );
@@ -71,10 +74,14 @@ export class IDBAdapter {
     const transaction = db.transaction(this.storeName, 'readwrite');
     const store = transaction.objectStore(this.storeName);
     
-    store.add({
-      ...entry,
-      timestamp: new Date().toISOString(),
-      context: entry.context ? JSON.stringify(entry.context) : undefined
-    });
+    return new Promise((resolve, reject) => {
+        const request = store.add({
+          ...entry,
+          timestamp: new Date().toLocaleString(),
+          context: typeof entry.context === 'object' ? JSON.stringify(entry.context) : entry.context
+        });
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    })
   }
 }

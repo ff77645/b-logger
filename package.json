@@ -1,12 +1,11 @@
 {
   "name": "b-logger",
   "version": "1.0.0",
-  "main": "index.html",
+  "main": "dist/logger.js",
   "directories": {
     "example": "examples"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
     "start": "http-server ."
   },

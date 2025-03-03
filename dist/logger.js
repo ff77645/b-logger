@@ -7,12 +7,13 @@ export var LogLevel;
     LogLevel[LogLevel["WARN"] = 2] = "WARN";
     LogLevel[LogLevel["ERROR"] = 3] = "ERROR";
 })(LogLevel || (LogLevel = {}));
-const defaultLog = (entry) => {
-    console.log(`${LogLevel[entry.level]}  [${new Date(entry.timestamp).toLocaleString()}]: ${entry.message}`);
+const defaultFormat = (entry) => {
+    return `${LogLevel[entry.level]}  [${new Date(entry.timestamp).toLocaleString()}]: ${entry.message}`;
 };
 export class Logger {
-    constructor(options = { level: LogLevel.DEBUG, log: defaultLog }) {
-        this.level = options.level;
+    constructor(options = {}) {
+        this.format = defaultFormat;
+        this.level = options.level || LogLevel.INFO;
         this.print = options.log;
         this.dbAdapter = new IDBAdapter();
     }
@@ -37,10 +38,10 @@ export class Logger {
             timestamp: new Date(),
             context
         };
-        this.print(entry);
+        this.print && this.print(this.format(entry));
         await this.dbAdapter.saveLog({
             ...entry,
-            context: entry.context ? JSON.stringify(entry.context) : undefined
+            context: typeof entry.context === 'object' ? JSON.stringify(entry.context) : entry.context
         });
     }
     async clearLogs(startTime, endTime) {

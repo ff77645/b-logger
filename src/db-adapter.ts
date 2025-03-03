@@ -1,7 +1,7 @@
 
-export type Context = any;
+export type Context = Object | String;
 
-interface LogEntryDB {
+export interface LogEntryDB {
   level: number;
   message: string;
   timestamp?: Date;

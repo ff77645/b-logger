@@ -16,22 +16,25 @@ type LogEntry = {
   context?: Context;
 };
 
-type Options = {
-  level: LogLevel,
-  log:(entry:LogEntry)=>void
+type LoggerOptions = {
+  level?: LogLevel,
+  log?:(message:String)=>void,
+  format?:(entry:LogEntry)=>String,
 }
 
-const defaultLog = (entry:LogEntry)=>{
-  console.log(`${LogLevel[entry.level]}  [${new Date(entry.timestamp).toLocaleString()}]: ${entry.message}`)
+const defaultFormat = (entry:LogEntry)=>{
+  return `${LogLevel[entry.level]}  [${new Date(entry.timestamp).toLocaleString()}]: ${entry.message}`
 }
 
 export class Logger {
   private level: LogLevel;
   private dbAdapter: IDBAdapter;
-  private print:(entry:LogEntry)=>void;
+  private format:(entry:LogEntry)=>String = defaultFormat;
+  private print?:(message:String)=>void;
 
-  constructor(options:Options={level:LogLevel.DEBUG,log:defaultLog}) {
-    this.level = options.level;
+
+  constructor(options:LoggerOptions={}) {
+    this.level = options.level || LogLevel.INFO;
     this.print = options.log
     this.dbAdapter = new IDBAdapter();
   }
@@ -61,10 +64,10 @@ export class Logger {
       timestamp: new Date(),
       context
     };
-    this.print(entry)
+    this.print && this.print(this.format(entry))
     await this.dbAdapter.saveLog({
       ...entry,
-      context: entry.context ? JSON.stringify(entry.context) : undefined
+      context: typeof entry.context === 'object' ? JSON.stringify(entry.context) : entry.context
     });
   }
 
